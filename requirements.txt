@@ -9,6 +9,7 @@ alembic==1.12.1
 
 # HTTP Client
 httpx==0.25.2
+aiohttp==3.9.1
 
 # Scheduling
 apscheduler==3.10.4
