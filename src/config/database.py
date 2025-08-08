@@ -19,24 +19,38 @@ class Base(DeclarativeBase):
     metadata = MetaData()
 
 
-# Create async engine with connection pooling
-engine = create_async_engine(
-    settings.database_url,
-    echo=not settings.is_production,  # Log SQL queries in development
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Validate connections before use
-    pool_recycle=3600,   # Recycle connections every hour
-)
+# Global variables for lazy initialization
+engine = None
+AsyncSessionLocal = None
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=True,
-    autocommit=False,
-)
+
+def _get_engine():
+    """Get or create the database engine."""
+    global engine
+    if engine is None:
+        engine = create_async_engine(
+            settings.database_url,
+            echo=not settings.is_production,  # Log SQL queries in development
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,  # Validate connections before use
+            pool_recycle=3600,   # Recycle connections every hour
+        )
+    return engine
+
+
+def _get_session_factory():
+    """Get or create the session factory."""
+    global AsyncSessionLocal
+    if AsyncSessionLocal is None:
+        AsyncSessionLocal = async_sessionmaker(
+            _get_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autoflush=True,
+            autocommit=False,
+        )
+    return AsyncSessionLocal
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -44,7 +58,8 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     Dependency function to get database session.
     Used with FastAPI dependency injection.
     """
-    async with AsyncSessionLocal() as session:
+    session_factory = _get_session_factory()
+    async with session_factory() as session:
         try:
             yield session
             await session.commit()
@@ -59,6 +74,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 async def init_database() -> None:
     """Initialize database connection and verify connectivity."""
     try:
+        engine = _get_engine()
         async with engine.begin() as conn:
             # Test connection
             await conn.execute("SELECT 1")
@@ -72,6 +88,7 @@ async def init_database() -> None:
 async def close_database() -> None:
     """Close database connections gracefully."""
     try:
+        engine = _get_engine()
         await engine.dispose()
         logger.info("Database connections closed")
     except Exception as e:
@@ -82,9 +99,17 @@ class DatabaseManager:
     """Database manager for handling connections and sessions."""
     
     def __init__(self):
-        self.engine = engine
-        self.session_factory = AsyncSessionLocal
         self.logger = get_logger(self.__class__.__name__)
+    
+    @property
+    def engine(self):
+        """Get the database engine."""
+        return _get_engine()
+    
+    @property
+    def session_factory(self):
+        """Get the session factory."""
+        return _get_session_factory()
     
     async def get_session(self) -> AsyncSession:
         """Get a new database session."""

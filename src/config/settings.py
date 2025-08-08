@@ -77,5 +77,4 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
-# Validate settings on import
-settings.validate_required_settings()
+# Note: Validation moved to main.py startup to avoid import-time failures
