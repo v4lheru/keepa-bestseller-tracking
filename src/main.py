@@ -15,7 +15,7 @@ from src.config.database import init_database, close_database
 from src.config.logging import get_logger
 from src.services.scheduler import scheduler_service
 from src.models.schemas import HealthCheck, SystemStatus
-from src import __version__
+from src.__version__ import __version__
 
 logger = get_logger(__name__)
 
