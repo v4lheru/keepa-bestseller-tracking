@@ -12,8 +12,6 @@ from apscheduler.triggers.cron import CronTrigger
 
 from src.config.settings import settings
 from src.config.logging import LoggerMixin
-from src.services.asin_tracker import asin_tracker
-from src.services.slack_service import slack_service
 
 
 class SchedulerService(LoggerMixin):
@@ -84,6 +82,7 @@ class SchedulerService(LoggerMixin):
             )
             
             # Send startup notification
+            from src.services.slack_service import slack_service
             await slack_service.send_system_alert(
                 "🚀 Best Seller Tracker started successfully!\n"
                 f"Monitoring interval: {settings.check_interval_minutes} minutes\n"
@@ -108,6 +107,7 @@ class SchedulerService(LoggerMixin):
             self.logger.info("Scheduler stopped successfully")
             
             # Send shutdown notification
+            from src.services.slack_service import slack_service
             await slack_service.send_system_alert(
                 "⏹️ Best Seller Tracker stopped",
                 alert_type="warning"
@@ -122,6 +122,9 @@ class SchedulerService(LoggerMixin):
         batch_start = datetime.utcnow()
         
         try:
+            from src.services.asin_tracker import asin_tracker
+            from src.services.slack_service import slack_service
+            
             self.logger.info("Starting scheduled monitoring batch")
             
             # Get ASINs to check
@@ -165,6 +168,8 @@ class SchedulerService(LoggerMixin):
                 )
             
         except Exception as e:
+            from src.services.slack_service import slack_service
+            
             self.logger.error(
                 "Scheduled monitoring batch failed",
                 error=str(e),
@@ -186,6 +191,8 @@ class SchedulerService(LoggerMixin):
     async def _send_daily_summary(self) -> None:
         """Send daily summary of activities."""
         try:
+            from src.services.slack_service import slack_service
+            
             self.logger.info("Generating daily summary")
             
             # Calculate yesterday's date range
@@ -236,8 +243,11 @@ class SchedulerService(LoggerMixin):
     async def _health_check(self) -> None:
         """Perform system health checks."""
         try:
-            # Check database connectivity
             from src.config.database import db_manager
+            from src.services.asin_tracker import asin_tracker
+            from src.services.slack_service import slack_service
+            
+            # Check database connectivity
             db_healthy = await db_manager.health_check()
             
             # Check Keepa API
@@ -310,6 +320,8 @@ class SchedulerService(LoggerMixin):
     ) -> Dict[str, Any]:
         """Trigger a manual batch run outside of the schedule."""
         try:
+            from src.services.asin_tracker import asin_tracker
+            
             self.logger.info(
                 "Triggering manual batch",
                 priority_filter=priority_filter,
