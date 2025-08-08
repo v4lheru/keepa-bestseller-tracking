@@ -25,26 +25,44 @@ class SlackService(LoggerMixin):
     
     async def send_bestseller_alert(
         self, 
-        payload: SlackNotificationPayload
+        payload
     ) -> bool:
         """
         Send a Best Seller badge change alert to Slack.
         
         Args:
-            payload: Notification payload with change details
+            payload: Notification payload with change details (dict or SlackNotificationPayload)
             
         Returns:
             True if notification sent successfully, False otherwise
         """
         try:
+            # Handle both dict and SlackNotificationPayload
+            if isinstance(payload, dict):
+                # Convert dict to SlackNotificationPayload for consistency
+                amazon_url = payload.get('amazon_url', f"https://amazon.com/dp/{payload['asin']}")
+                payload_obj = SlackNotificationPayload(
+                    asin=payload['asin'],
+                    product_title=payload['product_title'],
+                    change_type=payload['change_type'],
+                    category=payload['category'],
+                    category_id=payload.get('category_id'),
+                    previous_rank=payload.get('previous_rank'),
+                    new_rank=payload.get('new_rank'),
+                    detected_at=payload.get('detected_at', datetime.utcnow()),
+                    amazon_url=amazon_url
+                )
+            else:
+                payload_obj = payload
+            
             # Create message blocks
-            blocks = self._create_badge_alert_blocks(payload)
+            blocks = self._create_badge_alert_blocks(payload_obj)
             
             # Send message
             response = await self.client.chat_postMessage(
                 channel=self.default_channel,
                 blocks=blocks,
-                text=f"Best Seller Alert: {payload.asin}"  # Fallback text
+                text=f"Best Seller Alert: {payload_obj.asin}"  # Fallback text
             )
             
             if response["ok"]:
@@ -53,15 +71,15 @@ class SlackService(LoggerMixin):
                     recipient=self.default_channel,
                     delivery_method="slack",
                     success=True,
-                    asin=payload.asin,
-                    change_type=payload.change_type,
+                    asin=payload_obj.asin,
+                    change_type=payload_obj.change_type,
                     message_ts=response.get("ts")
                 )
                 
                 self.logger.info(
                     "Slack notification sent successfully",
-                    asin=payload.asin,
-                    change_type=payload.change_type,
+                    asin=payload_obj.asin,
+                    change_type=payload_obj.change_type,
                     channel=self.default_channel,
                     message_ts=response.get("ts")
                 )
@@ -70,46 +88,54 @@ class SlackService(LoggerMixin):
                 self.logger.error(
                     "Slack API returned not ok",
                     response=response,
-                    asin=payload.asin
+                    asin=payload_obj.asin
                 )
                 return False
                 
         except SlackApiError as e:
             error_msg = f"Slack API error: {e.response['error']}"
+            # Get ASIN safely from either payload type
+            asin = payload_obj.asin if 'payload_obj' in locals() else (payload.get('asin') if isinstance(payload, dict) else payload.asin)
+            change_type = payload_obj.change_type if 'payload_obj' in locals() else (payload.get('change_type') if isinstance(payload, dict) else payload.change_type)
+            
             log_notification_sent(
                 notification_type="bestseller_change",
                 recipient=self.default_channel,
                 delivery_method="slack",
                 success=False,
                 error=error_msg,
-                asin=payload.asin,
-                change_type=payload.change_type
+                asin=asin,
+                change_type=change_type
             )
             
             self.logger.error(
                 "Slack API error",
                 error=error_msg,
-                asin=payload.asin,
+                asin=asin,
                 response_code=e.response.status_code
             )
             return False
             
         except Exception as e:
             error_msg = f"Unexpected error: {str(e)}"
+            # Get ASIN safely from either payload type
+            asin = payload_obj.asin if 'payload_obj' in locals() else (payload.get('asin') if isinstance(payload, dict) else payload.asin)
+            change_type = payload_obj.change_type if 'payload_obj' in locals() else (payload.get('change_type') if isinstance(payload, dict) else payload.change_type)
+            
             log_notification_sent(
                 notification_type="bestseller_change",
                 recipient=self.default_channel,
                 delivery_method="slack",
                 success=False,
                 error=error_msg,
-                asin=payload.asin,
-                change_type=payload.change_type
+                asin=asin,
+                change_type=change_type
             )
             
             self.logger.error(
                 "Unexpected error sending Slack notification",
                 error=error_msg,
-                asin=payload.asin
+                asin=asin
             )
             return False
     
