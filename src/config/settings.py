@@ -53,7 +53,8 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Get database connection URL."""
-        return f"postgresql+asyncpg://postgres.dacxljastlbykwqaivcm:{self.supabase_service_key}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
+        # Use the correct Supabase database host
+        return f"postgresql+asyncpg://postgres:{self.supabase_service_key}@db.dacxljastlbykwqaivcm.supabase.co:5432/postgres"
     
     def validate_required_settings(self) -> None:
         """Validate that all required settings are present."""

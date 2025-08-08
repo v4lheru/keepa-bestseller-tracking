@@ -27,13 +27,19 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Best Seller Badge Tracker", version=__version__)
     
     try:
-        # Initialize database
-        await init_database()
-        logger.info("Database initialized")
+        # Try to initialize database (optional for now)
+        try:
+            await init_database()
+            logger.info("Database initialized")
+        except Exception as db_error:
+            logger.warning("Database initialization failed, continuing without DB", error=str(db_error))
         
-        # Start scheduler
-        await scheduler_service.start()
-        logger.info("Scheduler started")
+        # Start scheduler (will handle DB unavailability)
+        try:
+            await scheduler_service.start()
+            logger.info("Scheduler started")
+        except Exception as scheduler_error:
+            logger.warning("Scheduler start failed, continuing without scheduler", error=str(scheduler_error))
         
         # Application is ready
         logger.info("Application startup completed")
@@ -42,7 +48,8 @@ async def lifespan(app: FastAPI):
         
     except Exception as e:
         logger.error("Application startup failed", error=str(e))
-        raise
+        # Don't raise - allow app to start even with some failures
+        yield
     
     finally:
         # Shutdown
