@@ -27,6 +27,14 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Best Seller Badge Tracker", version=__version__)
     
     try:
+        # Validate required settings first
+        try:
+            settings.validate_required_settings()
+            logger.info("Settings validation passed")
+        except Exception as settings_error:
+            logger.error("Settings validation failed", error=str(settings_error))
+            raise
+        
         # Try to initialize database (optional for now)
         try:
             await init_database()
