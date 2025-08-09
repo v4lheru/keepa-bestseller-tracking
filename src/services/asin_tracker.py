@@ -29,6 +29,9 @@ class AsinTracker(LoggerMixin):
     
     def __init__(self):
         self.batch_size = 100  # Maximum ASINs per Keepa API call
+        # Import keepa_service to avoid circular imports
+        from src.services.keepa_service import keepa_service
+        self.keepa_service = keepa_service
         
     async def get_asins_to_check(
         self, 

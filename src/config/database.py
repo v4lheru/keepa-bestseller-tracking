@@ -77,7 +77,8 @@ async def init_database() -> None:
         engine = _get_engine()
         async with engine.begin() as conn:
             # Test connection
-            await conn.execute("SELECT 1")
+            from sqlalchemy import text
+            await conn.execute(text("SELECT 1"))
             logger.info("Database connection established successfully")
             
     except Exception as e:
@@ -130,8 +131,9 @@ class DatabaseManager:
     async def health_check(self) -> bool:
         """Check database connectivity."""
         try:
+            from sqlalchemy import text
             async with self.session_factory() as session:
-                await session.execute("SELECT 1")
+                await session.execute(text("SELECT 1"))
                 return True
         except Exception as e:
             self.logger.error("Database health check failed", error=str(e))
