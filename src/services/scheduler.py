@@ -83,13 +83,21 @@ class SchedulerService(LoggerMixin):
             )
             
             # Send startup notification
-            from src.services.slack_service import slack_service
-            await slack_service.send_system_alert(
-                "🚀 Best Seller Tracker started successfully!\n"
-                f"Monitoring interval: {settings.check_interval_minutes} minutes\n"
-                f"Next batch run: {self.next_batch_run.strftime('%Y-%m-%d %H:%M:%S UTC') if self.next_batch_run else 'Unknown'}",
-                alert_type="success"
-            )
+            try:
+                from src.services.slack_service import slack_service
+                success = await slack_service.send_system_alert(
+                    "🚀 Best Seller Tracker started successfully!\n"
+                    f"Monitoring interval: {settings.check_interval_minutes} minutes\n"
+                    f"Next batch run: {self.next_batch_run.strftime('%Y-%m-%d %H:%M:%S UTC') if self.next_batch_run else 'Unknown'}",
+                    alert_type="success"
+                )
+                if success:
+                    self.logger.info("Startup notification sent to Slack successfully")
+                else:
+                    self.logger.error("Failed to send startup notification to Slack")
+            except Exception as slack_error:
+                self.logger.error("Error sending startup notification to Slack", error=str(slack_error))
+                # Don't raise - continue even if Slack fails
             
         except Exception as e:
             self.logger.error("Failed to start scheduler", error=str(e))
