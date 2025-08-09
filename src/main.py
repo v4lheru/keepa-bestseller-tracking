@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config.settings import settings
-from src.config.database import init_database, close_database
+from src.config.supabase import supabase_client
 from src.config.logging import get_logger
 from src.services.scheduler import scheduler_service
 from src.models.schemas import HealthCheck, SystemStatus
@@ -35,12 +35,15 @@ async def lifespan(app: FastAPI):
             logger.error("Settings validation failed", error=str(settings_error))
             raise
         
-        # Try to initialize database (optional for now)
+        # Test Supabase API connection
         try:
-            await init_database()
-            logger.info("Database initialized")
-        except Exception as db_error:
-            logger.warning("Database initialization failed, continuing without DB", error=str(db_error))
+            supabase_healthy = await supabase_client.health_check()
+            if supabase_healthy:
+                logger.info("Supabase API connection verified")
+            else:
+                logger.warning("Supabase API connection failed, continuing anyway")
+        except Exception as supabase_error:
+            logger.warning("Supabase API test failed, continuing anyway", error=str(supabase_error))
         
         # Start scheduler (will handle DB unavailability)
         try:
@@ -68,9 +71,8 @@ async def lifespan(app: FastAPI):
             await scheduler_service.stop()
             logger.info("Scheduler stopped")
             
-            # Close database connections
-            await close_database()
-            logger.info("Database connections closed")
+            # No database connections to close with API approach
+            logger.info("Cleanup completed")
             
         except Exception as e:
             logger.error("Error during shutdown", error=str(e))
@@ -123,12 +125,11 @@ async def global_exception_handler(request, exc):
 @app.get("/health", response_model=HealthCheck)
 async def health_check():
     """Basic health check endpoint."""
-    from src.config.database import db_manager
     from src.services.keepa_service import keepa_service
     from src.services.slack_service import slack_service
     
-    # Check service health
-    db_healthy = await db_manager.health_check()
+    # Check service health using Supabase API
+    supabase_healthy = await supabase_client.health_check()
     keepa_healthy = await keepa_service.health_check()
     slack_healthy = await slack_service.health_check()
     
@@ -136,7 +137,7 @@ async def health_check():
     uptime_seconds = 0  # Would need to track actual startup time
     
     services = {
-        "database": db_healthy,
+        "supabase_api": supabase_healthy,
         "keepa_api": keepa_healthy,
         "slack_api": slack_healthy,
         "scheduler": scheduler_service.is_running
@@ -149,7 +150,7 @@ async def health_check():
         status=status,
         timestamp=datetime.utcnow(),
         version=__version__,
-        database_connected=db_healthy,
+        database_connected=supabase_healthy,
         services=services,
         uptime_seconds=uptime_seconds
     )
@@ -159,33 +160,20 @@ async def health_check():
 @app.get("/status", response_model=SystemStatus)
 async def system_status():
     """Detailed system status endpoint."""
-    from src.config.database import get_db_session
-    from src.models.database import TrackedAsin, BestsellerChange
-    from sqlalchemy import select, func
     from datetime import timedelta
     
     # Get basic health
     health = await health_check()
     
-    # Get database statistics
-    async with get_db_session() as session:
-        # Count active ASINs
-        active_asins_result = await session.execute(
-            select(func.count(TrackedAsin.id)).where(TrackedAsin.is_active == True)
-        )
-        active_asins = active_asins_result.scalar() or 0
-        
-        # Count ASINs needing checks (simplified)
-        pending_checks = 0  # Would need more complex query
-        
-        # Count recent changes (last 24 hours)
-        yesterday = datetime.utcnow() - timedelta(hours=24)
-        recent_changes_result = await session.execute(
-            select(func.count(BestsellerChange.id)).where(
-                BestsellerChange.detected_at >= yesterday
-            )
-        )
-        recent_changes = recent_changes_result.scalar() or 0
+    # Get statistics using Supabase API
+    active_asins = await supabase_client.get_asin_count()
+    
+    # Count ASINs needing checks (simplified for now)
+    pending_checks = 0  # Would need more complex logic
+    
+    # Count recent changes (last 24 hours)
+    recent_changes_data = await supabase_client.get_recent_changes(hours=24)
+    recent_changes = len(recent_changes_data)
     
     # Get scheduler status
     scheduler_status = scheduler_service.get_status()

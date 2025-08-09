@@ -11,6 +11,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
 from src.config.settings import settings
+from src.config.supabase import supabase_client
 from src.config.logging import LoggerMixin
 
 
@@ -243,12 +244,11 @@ class SchedulerService(LoggerMixin):
     async def _health_check(self) -> None:
         """Perform system health checks."""
         try:
-            from src.config.database import db_manager
             from src.services.asin_tracker import asin_tracker
             from src.services.slack_service import slack_service
             
-            # Check database connectivity
-            db_healthy = await db_manager.health_check()
+            # Check Supabase API connectivity
+            supabase_healthy = await supabase_client.health_check()
             
             # Check Keepa API
             keepa_healthy = await asin_tracker.keepa_service.health_check()
@@ -259,14 +259,14 @@ class SchedulerService(LoggerMixin):
             # Log health status
             self.logger.info(
                 "Health check completed",
-                database=db_healthy,
+                supabase_api=supabase_healthy,
                 keepa_api=keepa_healthy,
                 slack_api=slack_healthy
             )
             
             # Send alert if any service is unhealthy
             unhealthy_services = []
-            if not db_healthy:
+            if not supabase_healthy:
                 unhealthy_services.append("Database")
             if not keepa_healthy:
                 unhealthy_services.append("Keepa API")

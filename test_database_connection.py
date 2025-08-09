@@ -9,9 +9,14 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 
-# Set the environment variables (these should match Railway)
-os.environ["SUPABASE_URL"] = "https://dacxljastlbykwqaivcm.supabase.co"
-os.environ["SUPABASE_SERVICE_KEY"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhY3hsamFzdGxieWt3cWFpdmNtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Mzk5Mzg4NSwiZXhwIjoyMDY5NTY5ODg1fQ.s5aJA-AzqvOU28hWkrnVWLXthSGpeSmCAUfl_wpcwQg"
+# Load environment variables from .env file (safer approach)
+from dotenv import load_dotenv
+load_dotenv()
+
+# This test is now deprecated - use test_supabase_api.py instead
+print("⚠️  This test is deprecated. Please use test_supabase_api.py instead.")
+print("   The new approach uses Supabase API instead of direct database connections.")
+exit(0)
 
 # Import our settings after setting env vars
 from src.config.settings import settings

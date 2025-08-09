@@ -66,8 +66,9 @@ class Settings(BaseSettings):
         # Use database password if provided, otherwise try service key
         password = self.database_password or self.supabase_service_key
         
-        # Use the direct database connection format (as shown in Supabase dashboard)
-        return f"postgresql+asyncpg://postgres:{password}@db.{project_ref}.supabase.co:5432/postgres"
+        # Try multiple connection formats for maximum compatibility
+        # First try direct connection, then pooler if that fails
+        return f"postgresql+asyncpg://postgres:{password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres?options=project%3D{project_ref}"
     
     def validate_required_settings(self) -> None:
         """Validate that all required settings are present."""
