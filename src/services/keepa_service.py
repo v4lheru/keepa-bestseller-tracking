@@ -195,14 +195,16 @@ class KeepaService(LoggerMixin):
         """
         badges = []
         
+        # Handle None sales_ranks
         if not product.sales_ranks:
             return badges
         
-        # Create category lookup from category tree
+        # Create category lookup from category tree (handle None)
         category_lookup = {}
-        for category in product.category_tree:
-            if "catId" in category and "name" in category:
-                category_lookup[str(category["catId"])] = category["name"]
+        if product.category_tree:
+            for category in product.category_tree:
+                if isinstance(category, dict) and "catId" in category and "name" in category:
+                    category_lookup[str(category["catId"])] = category["name"]
         
         # Check each sales rank for #1 position
         for category_id, rank_data in product.sales_ranks.items():

@@ -388,7 +388,7 @@ class AsinTracker(LoggerMixin):
         """Update existing current state record using Supabase API."""
         
         state_data = {
-            "bestseller_badges": [badge.dict() for badge in badges],
+            "bestseller_badges": [badge.model_dump() for badge in badges],
             "sales_ranks": product.sales_ranks or {},
             "category_tree": product.category_tree or [],
             "product_title": product.title,
@@ -396,8 +396,8 @@ class AsinTracker(LoggerMixin):
             "current_price": product.current_price,
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
-            "keepa_last_update": product.last_update.isoformat() if product.last_update else None,
-            "raw_keepa_data": product.dict(),
+            "keepa_last_update": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "raw_keepa_data": product.model_dump(),
             "updated_at": datetime.utcnow().isoformat()
         }
         
@@ -413,7 +413,7 @@ class AsinTracker(LoggerMixin):
         
         state_data = {
             "asin": tracked_asin["asin"],
-            "bestseller_badges": [badge.dict() for badge in badges],
+            "bestseller_badges": [badge.model_dump() for badge in badges],
             "sales_ranks": product.sales_ranks or {},
             "category_tree": product.category_tree or [],
             "product_title": product.title,
@@ -421,8 +421,8 @@ class AsinTracker(LoggerMixin):
             "current_price": product.current_price,
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
-            "keepa_last_update": product.last_update.isoformat() if product.last_update else None,
-            "raw_keepa_data": product.dict(),
+            "keepa_last_update": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "raw_keepa_data": product.model_dump(),
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
@@ -439,7 +439,7 @@ class AsinTracker(LoggerMixin):
         
         history_data = {
             "asin": tracked_asin["asin"],
-            "bestseller_badges": [badge.dict() for badge in badges],
+            "bestseller_badges": [badge.model_dump() for badge in badges],
             "sales_ranks": product.sales_ranks or {},
             "category_tree": product.category_tree or [],
             "product_title": product.title,
@@ -447,8 +447,8 @@ class AsinTracker(LoggerMixin):
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
             "current_price": product.current_price,
-            "keepa_timestamp": product.last_update.isoformat() if product.last_update else None,
-            "raw_keepa_response": product.dict(),
+            "keepa_timestamp": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "raw_keepa_response": product.model_dump(),
             "tokens_used": 1,
             "checked_at": datetime.utcnow().isoformat()
         }

@@ -230,14 +230,14 @@ class ValidationError(BaseModel):
 class KeepaProductData(BaseModel):
     """Schema for Keepa product data."""
     asin: str
-    title: Optional[str]
-    brand: Optional[str]
-    sales_ranks: Dict[str, List[int]]
-    category_tree: List[Dict[str, Any]]
-    current_price: Optional[int]
-    availability: Optional[int]
-    monthly_sold: Optional[int]
-    last_update: Optional[int]
+    title: Optional[str] = None
+    brand: Optional[str] = None
+    sales_ranks: Optional[Dict[str, List[int]]] = None
+    category_tree: Optional[List[Dict[str, Any]]] = None
+    current_price: Optional[int] = None
+    availability: Optional[int] = None
+    monthly_sold: Optional[int] = None
+    last_update: Optional[int] = None
 
 
 class KeepaApiResponse(BaseModel):
