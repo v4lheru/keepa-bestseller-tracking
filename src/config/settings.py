@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     # Database Configuration
     supabase_url: str = Field(..., description="Supabase project URL")
     supabase_service_key: str = Field(..., description="Supabase service role key")
+    database_password: Optional[str] = Field(default=None, description="Supabase database password")
+    database_url_override: Optional[str] = Field(default=None, description="Direct database URL override")
     
     # Keepa API Configuration
     keepa_api_key: str = Field(..., description="Keepa API access key")
@@ -53,8 +55,19 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Get database connection URL."""
-        # Use the correct Supabase database host
-        return f"postgresql+asyncpg://postgres:{self.supabase_service_key}@db.dacxljastlbykwqaivcm.supabase.co:5432/postgres"
+        # Use override if provided, otherwise construct from Supabase credentials
+        if self.database_url_override:
+            return self.database_url_override
+        
+        # Extract project reference from Supabase URL
+        # https://dacxljastlbykwqaivcm.supabase.co -> dacxljastlbykwqaivcm
+        project_ref = self.supabase_url.replace("https://", "").replace(".supabase.co", "")
+        
+        # Use database password if provided, otherwise try service key
+        password = self.database_password or self.supabase_service_key
+        
+        # Use the direct database connection format (as shown in Supabase dashboard)
+        return f"postgresql+asyncpg://postgres:{password}@db.{project_ref}.supabase.co:5432/postgres"
     
     def validate_required_settings(self) -> None:
         """Validate that all required settings are present."""
