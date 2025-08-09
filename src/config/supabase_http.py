@@ -90,16 +90,21 @@ class SupabaseHTTPClient:
                 json=state_data
             )
             
-            # If no rows affected (404), insert new record
-            if response.status_code == 404:
-                state_data['asin'] = asin
-                response = await self.client.post(
-                    f"{self.base_url}/asin_current_state",
-                    headers=self.headers,
-                    json=state_data
-                )
+            # If update was successful, return True
+            if response.status_code == 200:
+                data = response.json()
+                if data:  # If rows were updated
+                    return True
             
-            return response.status_code in [200, 201]
+            # If no rows were updated (empty response), insert new record
+            state_data['asin'] = asin
+            response = await self.client.post(
+                f"{self.base_url}/asin_current_state",
+                headers=self.headers,
+                json=state_data
+            )
+            
+            return response.status_code == 201
             
         except Exception as e:
             logger.error("Failed to update ASIN current state", asin=asin, error=str(e))
