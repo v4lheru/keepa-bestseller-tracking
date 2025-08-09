@@ -27,7 +27,7 @@ python-json-logger==2.0.7
 slack-sdk==3.26.1
 
 # Supabase API Client
-supabase==2.7.4
+supabase==2.4.2
 
 # Data Processing
 pandas==2.1.4

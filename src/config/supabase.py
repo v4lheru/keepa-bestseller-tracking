@@ -23,6 +23,7 @@ class SupabaseClient:
     def _initialize_client(self) -> None:
         """Initialize the Supabase client."""
         try:
+            # Try to create client with minimal options for better compatibility
             self.client = create_client(
                 settings.supabase_url,
                 settings.supabase_service_key
@@ -30,10 +31,23 @@ class SupabaseClient:
             logger.info("Supabase client initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize Supabase client", error=str(e))
-            raise
+            # Don't raise - allow app to start even if Supabase client fails
+            # This prevents the entire app from crashing
+            self.client = None
+            logger.warning("Continuing without Supabase client - health checks will fail")
+    
+    def _check_client(self) -> bool:
+        """Check if client is available."""
+        if not self.client:
+            logger.error("Supabase client not initialized")
+            return False
+        return True
     
     async def health_check(self) -> bool:
         """Check if Supabase API is accessible."""
+        if not self.client:
+            logger.error("Supabase client not initialized")
+            return False
         try:
             # Simple query to test connection
             response = self.client.table('simple_asin_status').select('count').limit(1).execute()
@@ -46,6 +60,8 @@ class SupabaseClient:
     
     async def get_asins_to_check(self, limit: int = 100, priority_filter: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get ASINs that need to be checked."""
+        if not self._check_client():
+            return []
         try:
             query = self.client.table('simple_asin_status').select('*')
             
