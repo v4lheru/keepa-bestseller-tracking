@@ -23,18 +23,37 @@ class SupabaseClient:
     def _initialize_client(self) -> None:
         """Initialize the Supabase client."""
         try:
-            # Try to create client with minimal options for better compatibility
+            # Create client with explicit options for Railway compatibility
+            from supabase import ClientOptions
+            
+            options = ClientOptions(
+                auto_refresh_token=False,
+                persist_session=False,
+                storage=None,
+                realtime=None
+            )
+            
             self.client = create_client(
                 settings.supabase_url,
-                settings.supabase_service_key
+                settings.supabase_service_key,
+                options
             )
             logger.info("Supabase client initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize Supabase client", error=str(e))
-            # Don't raise - allow app to start even if Supabase client fails
-            # This prevents the entire app from crashing
-            self.client = None
-            logger.warning("Continuing without Supabase client - health checks will fail")
+            # Try fallback initialization without options
+            try:
+                logger.info("Trying fallback Supabase client initialization")
+                self.client = create_client(
+                    settings.supabase_url,
+                    settings.supabase_service_key
+                )
+                logger.info("Supabase client initialized with fallback method")
+            except Exception as fallback_error:
+                logger.error("Fallback initialization also failed", error=str(fallback_error))
+                # Don't raise - allow app to start even if Supabase client fails
+                self.client = None
+                logger.warning("Continuing without Supabase client - health checks will fail")
     
     def _check_client(self) -> bool:
         """Check if client is available."""
