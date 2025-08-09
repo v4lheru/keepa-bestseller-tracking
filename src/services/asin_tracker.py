@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple, Any
 from uuid import UUID, uuid4
 
-from src.config.supabase import supabase_client
+from src.config.supabase_http import supabase_client
 from src.config.logging import LoggerMixin, log_asin_check, log_batch_processing
 from src.models.schemas import (
     KeepaProductData, BestSellerBadge, SlackNotificationPayload,

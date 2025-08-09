@@ -26,8 +26,8 @@ python-json-logger==2.0.7
 # Slack SDK
 slack-sdk==3.26.1
 
-# Supabase API Client
-supabase==2.8.0
+# Direct HTTP client for Supabase (no problematic Python client)
+# Using httpx which is already included above
 
 # Data Processing
 pandas==2.1.4

@@ -11,7 +11,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
 from src.config.settings import settings
-from src.config.supabase import supabase_client
+from src.config.supabase_http import supabase_client
 from src.config.logging import LoggerMixin
 
 

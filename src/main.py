@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config.settings import settings
-from src.config.supabase import supabase_client
+from src.config.supabase_http import supabase_client
 from src.config.logging import get_logger
 from src.services.scheduler import scheduler_service
 from src.models.schemas import HealthCheck, SystemStatus
