@@ -42,9 +42,10 @@ class SupabaseHTTPClient:
     # ASIN Management Methods
     
     async def get_asins_to_check(self, limit: int = 100, priority_filter: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get ASINs that need to be checked."""
+        """Get ASINs that need to be checked with their tracked_asin_id."""
         try:
-            url = f"{self.base_url}/simple_asin_status?select=*&order=priority.asc,last_checked_at.asc&limit={limit}"
+            # Get from tracked_asins table to ensure we have the ID
+            url = f"{self.base_url}/tracked_asins?select=id,asin,priority,monitoring_frequency,last_checked_at&is_active=eq.true&order=priority.asc,last_checked_at.asc.nullsfirst&limit={limit}"
             
             if priority_filter:
                 url += f"&priority=eq.{priority_filter}"

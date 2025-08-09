@@ -438,6 +438,7 @@ class AsinTracker(LoggerMixin):
         """Create history record for this check using Supabase API."""
         
         history_data = {
+            "tracked_asin_id": tracked_asin["id"],  # Use the proper foreign key
             "asin": tracked_asin["asin"],
             "bestseller_badges": [badge.model_dump() for badge in badges],
             "sales_ranks": product.sales_ranks or {},
