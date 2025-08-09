@@ -396,7 +396,7 @@ class AsinTracker(LoggerMixin):
             "current_price": product.current_price,
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
-            "keepa_last_update": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "keepa_last_update": product.last_update,
             "raw_keepa_data": product.model_dump(),
             "updated_at": datetime.utcnow().isoformat()
         }
@@ -421,7 +421,7 @@ class AsinTracker(LoggerMixin):
             "current_price": product.current_price,
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
-            "keepa_last_update": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "keepa_last_update": product.last_update,
             "raw_keepa_data": product.model_dump(),
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
@@ -447,10 +447,10 @@ class AsinTracker(LoggerMixin):
             "availability_amazon": product.availability,
             "monthly_sold": product.monthly_sold,
             "current_price": product.current_price,
-            "keepa_timestamp": datetime.fromtimestamp(product.last_update).isoformat() if product.last_update else None,
+            "keepa_timestamp": product.last_update,
             "raw_keepa_response": product.model_dump(),
             "tokens_used": 1,
-            "checked_at": datetime.utcnow().isoformat()
+            "check_timestamp": datetime.utcnow().isoformat()
         }
         
         await supabase_client.create_history_record(history_data)

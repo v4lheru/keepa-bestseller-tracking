@@ -94,6 +94,7 @@ class SupabaseHTTPClient:
             if response.status_code == 200:
                 data = response.json()
                 if data:  # If rows were updated
+                    logger.info("ASIN current state updated successfully", asin=asin)
                     return True
             
             # If no rows were updated (empty response), insert new record
@@ -104,7 +105,15 @@ class SupabaseHTTPClient:
                 json=state_data
             )
             
-            return response.status_code == 201
+            if response.status_code == 201:
+                logger.info("ASIN current state created successfully", asin=asin)
+                return True
+            else:
+                logger.error("Failed to create ASIN current state", 
+                           asin=asin, 
+                           status_code=response.status_code,
+                           response=response.text)
+                return False
             
         except Exception as e:
             logger.error("Failed to update ASIN current state", asin=asin, error=str(e))
@@ -118,10 +127,19 @@ class SupabaseHTTPClient:
                 headers=self.headers,
                 json=history_data
             )
-            return response.status_code == 201
+            
+            if response.status_code == 201:
+                logger.info("History record created successfully", asin=history_data.get('asin'))
+                return True
+            else:
+                logger.error("Failed to create history record", 
+                           status_code=response.status_code, 
+                           response=response.text,
+                           asin=history_data.get('asin'))
+                return False
             
         except Exception as e:
-            logger.error("Failed to create history record", error=str(e))
+            logger.error("Failed to create history record", error=str(e), asin=history_data.get('asin'))
             return False
     
     async def create_bestseller_change(self, change_data: Dict[str, Any]) -> Optional[str]:
