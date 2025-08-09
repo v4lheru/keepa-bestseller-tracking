@@ -221,6 +221,20 @@ class SupabaseHTTPClient:
             logger.error("Failed to log error", error=str(e))
             return False
     
+    async def log_notification(self, notification_data: Dict[str, Any]) -> bool:
+        """Log notification to database."""
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/notification_log",
+                headers=self.headers,
+                json=notification_data
+            )
+            return response.status_code == 201
+            
+        except Exception as e:
+            logger.error("Failed to log notification", error=str(e))
+            return False
+    
     # Analytics Methods
     
     async def get_recent_changes(self, hours: int = 24) -> List[Dict[str, Any]]:

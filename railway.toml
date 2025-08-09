@@ -2,8 +2,10 @@
 builder = "nixpacks"
 
 [deploy]
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "always"
+restartPolicyMaxRetries = 10
 
 [env]
 PORT = "8000"
