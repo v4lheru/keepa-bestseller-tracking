@@ -298,17 +298,116 @@ class SchedulerService(LoggerMixin):
         end_time: datetime
     ) -> Dict[str, Any]:
         """Get daily statistics for summary report."""
-        # This would query the database for daily stats
-        # For now, return mock data
-        return {
-            "total_changes": 0,
-            "badges_gained": 0,
-            "badges_lost": 0,
-            "asins_checked": 0,
-            "api_calls": 0,
-            "cost_cents": 0,
-            "top_categories": []
-        }
+        try:
+            # Get API usage stats for the day
+            api_stats_query = f"""
+                SELECT 
+                    SUM(asins_processed) as asins_checked,
+                    SUM(tokens_consumed) as total_tokens,
+                    SUM(estimated_cost_cents) as cost_cents,
+                    COUNT(*) as api_calls
+                FROM api_usage_log 
+                WHERE processing_completed_at >= '{start_time.isoformat()}'
+                AND processing_completed_at < '{end_time.isoformat()}'
+            """
+            
+            # Get badge changes stats
+            changes_stats_query = f"""
+                SELECT 
+                    COUNT(*) as total_changes,
+                    SUM(CASE WHEN change_type = 'gained' THEN 1 ELSE 0 END) as badges_gained,
+                    SUM(CASE WHEN change_type = 'lost' THEN 1 ELSE 0 END) as badges_lost
+                FROM bestseller_changes 
+                WHERE detected_at >= '{start_time.isoformat()}'
+                AND detected_at < '{end_time.isoformat()}'
+            """
+            
+            # Get top categories with changes
+            categories_query = f"""
+                SELECT 
+                    category as name,
+                    COUNT(*) as changes
+                FROM bestseller_changes 
+                WHERE detected_at >= '{start_time.isoformat()}'
+                AND detected_at < '{end_time.isoformat()}'
+                GROUP BY category
+                ORDER BY changes DESC
+                LIMIT 5
+            """
+            
+            # Use our Supabase HTTP client directly
+            import httpx
+            
+            async with httpx.AsyncClient() as client:
+                # Get API usage stats using direct REST API
+                api_url = f"{supabase_client.base_url}/api_usage_log?select=asins_processed,tokens_consumed,estimated_cost_cents&processing_completed_at=gte.{start_time.isoformat()}&processing_completed_at=lt.{end_time.isoformat()}"
+                api_response = await client.get(api_url, headers=supabase_client.headers)
+                
+                api_data = {"asins_checked": 0, "total_tokens": 0, "cost_cents": 0, "api_calls": 0}
+                if api_response.status_code == 200:
+                    api_records = api_response.json()
+                    if api_records:
+                        api_data["api_calls"] = len(api_records)
+                        api_data["asins_checked"] = sum(r.get("asins_processed", 0) or 0 for r in api_records)
+                        api_data["total_tokens"] = sum(r.get("tokens_consumed", 0) or 0 for r in api_records)
+                        api_data["cost_cents"] = sum(r.get("estimated_cost_cents", 0) or 0 for r in api_records)
+                
+                # Get badge changes stats using direct REST API
+                changes_url = f"{supabase_client.base_url}/bestseller_changes?select=change_type&detected_at=gte.{start_time.isoformat()}&detected_at=lt.{end_time.isoformat()}"
+                changes_response = await client.get(changes_url, headers=supabase_client.headers)
+                
+                changes_data = {"total_changes": 0, "badges_gained": 0, "badges_lost": 0}
+                if changes_response.status_code == 200:
+                    changes_records = changes_response.json()
+                    if changes_records:
+                        changes_data["total_changes"] = len(changes_records)
+                        changes_data["badges_gained"] = sum(1 for r in changes_records if r.get("change_type") == "gained")
+                        changes_data["badges_lost"] = sum(1 for r in changes_records if r.get("change_type") == "lost")
+                
+                # Get top categories using direct REST API
+                categories_url = f"{supabase_client.base_url}/bestseller_changes?select=category&detected_at=gte.{start_time.isoformat()}&detected_at=lt.{end_time.isoformat()}"
+                categories_response = await client.get(categories_url, headers=supabase_client.headers)
+                
+                top_categories = []
+                if categories_response.status_code == 200:
+                    categories_records = categories_response.json()
+                    if categories_records:
+                        # Count categories
+                        category_counts = {}
+                        for record in categories_records:
+                            category = record.get("category", "Unknown")
+                            category_counts[category] = category_counts.get(category, 0) + 1
+                        
+                        # Sort by count and take top 5
+                        sorted_categories = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+                        top_categories = [{"name": cat, "changes": count} for cat, count in sorted_categories]
+            
+            # Combine all stats
+            stats = {
+                "total_changes": changes_data["total_changes"],
+                "badges_gained": changes_data["badges_gained"],
+                "badges_lost": changes_data["badges_lost"],
+                "asins_checked": api_data["asins_checked"],
+                "api_calls": api_data["api_calls"],
+                "cost_cents": api_data["cost_cents"],
+                "top_categories": top_categories
+            }
+            
+            self.logger.info("Daily stats calculated", stats=stats)
+            return stats
+            
+        except Exception as e:
+            self.logger.error("Error calculating daily stats", error=str(e))
+            # Return zeros on error to prevent crashes
+            return {
+                "total_changes": 0,
+                "badges_gained": 0,
+                "badges_lost": 0,
+                "asins_checked": 0,
+                "api_calls": 0,
+                "cost_cents": 0,
+                "top_categories": []
+            }
     
     def _update_next_run_time(self) -> None:
         """Update the next batch run time."""
