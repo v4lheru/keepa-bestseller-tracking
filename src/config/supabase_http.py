@@ -156,11 +156,20 @@ class SupabaseHTTPClient:
                 data = response.json()
                 return data[0]['id'] if data else None
             else:
-                logger.error("Failed to create bestseller change", status_code=response.status_code)
+                logger.error(
+                    "Failed to create history record", 
+                    status_code=response.status_code, 
+                    response=response.text,
+                    asin=change_data.get('asin')
+                )
                 return None
                 
         except Exception as e:
-            logger.error("Failed to create bestseller change", error=str(e))
+            logger.error(
+                "Failed to create history record", 
+                error=str(e),
+                asin=change_data.get('asin')
+            )
             return None
     
     async def update_bestseller_change_notification(self, change_id: str, notification_data: Dict[str, Any]) -> bool:

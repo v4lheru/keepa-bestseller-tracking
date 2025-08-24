@@ -204,11 +204,11 @@ class SchedulerService(LoggerMixin):
             
             self.logger.info("Generating daily summary")
             
-            # Calculate yesterday's date range
-            today = datetime.utcnow().date()
-            yesterday = today - timedelta(days=1)
-            start_time = datetime.combine(yesterday, datetime.min.time())
-            end_time = datetime.combine(today, datetime.min.time())
+            # Calculate today's date range (from midnight to now)
+            now = datetime.utcnow()
+            today = now.date()
+            start_time = datetime.combine(today, datetime.min.time())
+            end_time = now
             
             # Get statistics (this would need to be implemented in asin_tracker)
             stats = await self._get_daily_stats(start_time, end_time)

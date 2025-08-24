@@ -275,10 +275,14 @@ class KeepaService(LoggerMixin):
     def estimate_cost(self, asin_count: int) -> int:
         """
         Estimate cost in cents for checking given number of ASINs.
-        Keepa charges $1 per 1000 tokens, 1 token per ASIN.
+        Based on Keepa plan: €49/month for 20 tokens/minute (≙ 892,800 per month).
+        Cost per token = €49 / 892,800 = €0.0000549 ≈ $0.000059 per token
         """
         tokens_needed = asin_count
-        cost_cents = int((tokens_needed / 1000) * 100)  # $1 = 100 cents
+        # €49/month = 892,800 tokens/month
+        # €0.0000549 per token ≈ $0.000059 per token (assuming €1 = $1.07)
+        cost_per_token_cents = 0.0059  # $0.000059 = 0.0059 cents
+        cost_cents = int(tokens_needed * cost_per_token_cents)
         return max(cost_cents, 1)  # Minimum 1 cent
     
     async def health_check(self) -> bool:

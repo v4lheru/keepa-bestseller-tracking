@@ -307,11 +307,29 @@ class AsinTracker(LoggerMixin):
     ) -> Optional[Dict[str, Any]]:
         """Create a bestseller change record using Supabase API."""
         
+        # Validate required fields to prevent database constraint violations
+        if not category or category.strip() == "":
+            category = f"Category {category_id}" if category_id else "Unknown Category"
+            self.logger.warning(
+                "Empty category name detected, using fallback",
+                asin=tracked_asin["asin"],
+                category_id=category_id,
+                fallback_category=category
+            )
+        
+        if not category_id or category_id.strip() == "":
+            category_id = "unknown"
+            self.logger.warning(
+                "Empty category_id detected, using fallback",
+                asin=tracked_asin["asin"],
+                fallback_category_id=category_id
+            )
+        
         change_data = {
             "asin": tracked_asin["asin"],
             "change_type": change_type,
-            "category": category,
-            "category_id": category_id,
+            "category": category.strip(),
+            "category_id": category_id.strip(),
             "previous_rank": previous_rank,
             "new_rank": new_rank,
             "previous_badge_status": previous_badge_status,
@@ -319,20 +337,37 @@ class AsinTracker(LoggerMixin):
             "detected_at": datetime.utcnow().isoformat()
         }
         
-        change_id = await supabase_client.create_bestseller_change(change_data)
-        
-        if change_id:
-            return {
-                "id": change_id,
-                "change_type": change_type,
-                "category": category,
-                "category_id": category_id,
-                "previous_rank": previous_rank,
-                "new_rank": new_rank,
-                "detected_at": datetime.utcnow()
-            }
-        
-        return None
+        try:
+            change_id = await supabase_client.create_bestseller_change(change_data)
+            
+            if change_id:
+                self.logger.info(
+                    "History record created successfully",
+                    asin=tracked_asin["asin"]
+                )
+                return {
+                    "id": change_id,
+                    "change_type": change_type,
+                    "category": category,
+                    "category_id": category_id,
+                    "previous_rank": previous_rank,
+                    "new_rank": new_rank,
+                    "detected_at": datetime.utcnow()
+                }
+            else:
+                self.logger.error(
+                    "Failed to create history record",
+                    asin=tracked_asin["asin"]
+                )
+                return None
+                
+        except Exception as e:
+            self.logger.error(
+                "Failed to create history record",
+                asin=tracked_asin["asin"],
+                error=str(e)
+            )
+            return None
     
     async def _send_change_notification(
         self,
